@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <!-- Meta viewport untuk responsivitas mobile -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Mascot Viewer for Raden</title>
+    <link rel="icon" type="image/x-icon" href="assets/img/favicon.png">
+    <style>
+        /* Style overlay */
+        #overlay {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+            transition: all 1s ease-out;
+        }
+
+        #overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .content{
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            margin-top: -20px;
+        }
+
+        .title {
+            color: white;
+            /* Menggunakan clamp untuk membuat ukuran font responsif */
+            font-size: clamp(1.8em, 5vw, 3em);
+            margin-bottom: 0;
+            font-family: 'Arial', sans-serif;
+            text-transform: uppercase;
+            /* Mengurangi letter-spacing untuk layar kecil */
+            letter-spacing: clamp(2px, 4vw, 4px);
+            opacity: 0;
+            animation: fadeInUp 1s ease-out forwards;
+            padding: 0 50px;
+            text-align: center;
+        }
+
+        .dev {
+            color: white;
+            font-family: 'Arial', sans-serif;
+            letter-spacing: clamp(2px, 4vw, 4px);
+            opacity: 0;
+            animation: fadeInUp 1s ease-out forwards;
+            padding: 0;
+            text-align: center;
+            margin: 1em 0 1.5em 0;
+        }
+
+        #startButton {
+            padding: 15px 40px;
+            font-size: 1.2em;
+            background: transparent;
+            border: 2px solid white;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.5s forwards;
+            /* Sembunyikan tombol start sampai model selesai dimuat */
+            display: none;
+        }
+
+        #startButton:hover {
+            background: white;
+            color: black;
+            transform: scale(1.1);
+        }
+
+        /* Progress bar styles */
+        #progressContainer {
+            width: 80%;
+            height: 20px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        #progressBar {
+            width: 0%;
+            height: 100%;
+            background: white;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Style untuk memastikan canvas memenuhi layar */
+        body { 
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas { 
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Media Query tambahan jika diperlukan */
+        @media (max-width: 600px) {
+            #startButton {
+                padding: 10px 20px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Overlay -->
+    <div id="overlay">
+        <div class="content">
+            <h1 class="title">3D Mascot Viewer for Raden</h1>
+            <p class="dev"><i>Developed by Auevan</i></p>
+            <div id="progressContainer">
+                <div id="progressBar"></div>
+            </div>
+            <button id="startButton">START EXPERIENCE</button>
+        </div>
+    </div>
+
+    <!-- Three.js dan dependency -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <script type="text/javascript">
+        // Event listener untuk tombol start
+        document.getElementById('startButton').addEventListener('click', () => {
+            const overlay = document.getElementById('overlay');
+            overlay.classList.add('hidden');
+            
+            // Enable controls setelah overlay hilang
+            controls.autoRotate = true;
+            controls.enabled = true;
+        });
+    </script>
+
+    <script>
+        let model;
+        const INITIAL_CAMERA_DISTANCE = 2;
+        
+        // Variabel untuk fade in model
+        let fadeIn = false;
+        let fadeStartTime = 0;
+        const fadeDuration = 2000; // durasi fade in dalam milidetik (2 detik)
+        
+        // Initialize core elements
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            logarithmicDepthBuffer: true
+        });
+        
+        // Renderer setup
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.shadowMap.enabled = false;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        document.body.appendChild(renderer.domElement);
+
+        // Enhanced lighting system
+        function setupLighting() {
+            // Main key light (30% lebih terang)
+            const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            keyLight.position.set(5, 8, 10);
+            keyLight.castShadow = true;
+            keyLight.shadow.mapSize.width = 2048;
+            keyLight.shadow.mapSize.height = 2048;
+            scene.add(keyLight);
+
+            // Fill light (60% lebih terang)
+            const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            fillLight.position.set(-5, 5, 5);
+            scene.add(fillLight);
+
+            // Back light (30% lebih terang)
+            const rimLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            rimLight.position.set(0, 5, -10);
+            scene.add(rimLight);
+
+            // Ambient light (20% lebih terang)
+            const ambientLight = new THREE.AmbientLight(0x808080, 0.2);
+            scene.add(ambientLight);
+
+            // Optional shadow plane dengan opacity lebih rendah
+            const shadowPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(20, 20),
+                new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.2 })
+            );
+            shadowPlane.rotation.x = -Math.PI / 2;
+            shadowPlane.position.y = -0.01;
+            shadowPlane.receiveShadow = true;
+            scene.add(shadowPlane);
+        }
+
+        // Camera and controls setup
+        camera.position.set(0, INITIAL_CAMERA_DISTANCE / 2, INITIAL_CAMERA_DISTANCE);
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 0.5;
+        controls.maxDistance = 20;
+        controls.autoRotate = true;
+
+        // Model loading dengan progress bar
+        new THREE.GLTFLoader().load(
+            'assets/model/maskot.glb',
+            (gltf) => {
+                model = gltf.scene;
+                model.rotation.y = Math.PI;
+                // Model setup
+                model.traverse((node) => {
+                    if (node.isMesh && node.material) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                        // Jika material merupakan MeshStandardMaterial atau MeshPhysicalMaterial
+                        if (node.material.isMeshStandardMaterial || node.material.isMeshPhysicalMaterial) {
+                            node.material.metalness = 0.7;
+                            node.material.roughness = 0.2;
+                            node.material.envMapIntensity = 0.6;
+                        }
+                        // Opsional: Tambahkan sedikit efek emissive agar objek tampak menyala
+                        node.material.emissive = new THREE.Color(0x111111);
+                        node.material.emissiveIntensity = 0.2;
+                        // Set material ke transparan dan mulai dengan opacity 0 untuk efek fade in
+                        node.material.transparent = true;
+                        node.material.opacity = 0;
+                        node.material.needsUpdate = true;
+                    }
+                });
+                
+                // Center model
+                const box = new THREE.Box3().expandByObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                model.position.sub(center);
+                
+                // Auto-scale camera
+                const size = box.getSize(new THREE.Vector3()).length();
+                camera.position.z = size * 1.5;
+                controls.update();
+                
+                scene.add(model);
+                
+                // Mulai animasi fade in
+                fadeIn = true;
+                fadeStartTime = performance.now();
+                
+                // Setelah model selesai dimuat, sembunyikan progress bar dan tampilkan tombol start
+                document.getElementById('progressContainer').style.display = 'none';
+                document.getElementById('startButton').style.display = 'block';
+            },
+            (xhr) => {
+                if (xhr.lengthComputable) {
+                    const percentComplete = (xhr.loaded / xhr.total) * 100;
+                    document.getElementById('progressBar').style.width = percentComplete + '%';
+                }
+            },
+            (error) => {
+                console.error(error);
+            }
+        );
+
+        // Scene setup
+        setupLighting();
+        scene.background = new THREE.Color(0x000000); 
+
+        // Window resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            
+            // Jika model sedang dalam proses fade in
+            if (model && fadeIn) {
+                const elapsed = performance.now() - fadeStartTime;
+                const factor = Math.min(elapsed / fadeDuration, 1);
+                model.traverse((node) => {
+                    if (node.isMesh && node.material && 'opacity' in node.material) {
+                        node.material.opacity = factor;
+                    }
+                });
+                if (factor === 1) {
+                    fadeIn = false;
+                }
+            }
+            
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
