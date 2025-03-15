@@ -87,8 +87,9 @@
       text-align: center;
       line-height: 20px;
       font-family: 'Arial', sans-serif;
-      color: white;
       font-size: 0.9em;
+      /* Warna default putih */
+      color: white;
     }
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(20px); }
@@ -130,7 +131,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <script>
-    let model, isRotating = false;
+    let model, isRotating = false, modelLoaded = false;
     const INITIAL_CAMERA_DISTANCE = 2;
     let fadeIn = false, fadeStartTime = 0;
     const fadeDuration = 2000;
@@ -168,28 +169,28 @@
     controls.autoRotate = false;
 
     const modelPath = 'assets/model/maskot.glb';
-    let simulationStarted = false;
-    let progressInterval;
 
-    // Fungsi untuk mensimulasikan progress jika header Content-Length tidak tersedia
-    function startSimulation() {
-      simulationStarted = true;
-      progressInterval = setInterval(() => {
-        let progressBar = document.getElementById('progressBar');
-        let progressText = document.getElementById('progressText');
-        // Ambil nilai progress saat ini
-        let current = parseFloat(progressBar.style.width);
-        current = isNaN(current) ? 0 : current;
-        // Tambahkan secara acak hingga maksimum 90%
-        let increment = Math.random() * 5; // increment antara 0 dan 5%
-        current = Math.min(current + increment, 90);
-        progressBar.style.width = current + '%';
-        progressText.innerText = Math.round(current) + '%';
-      }, 100);
-    }
-
-    // Mulai simulasi progress
-    startSimulation();
+    // Simulasi progress berbasis waktu
+    let simulationStartTime = performance.now();
+    // Misal: simulasi butuh waktu 8 detik untuk mencapai 100%
+    const simulationDuration = 8000;
+    let progressInterval = setInterval(() => {
+      let elapsed = performance.now() - simulationStartTime;
+      let simulatedPercent = (elapsed / simulationDuration) * 100;
+      // Jika model belum selesai, jangan tampilkan 100%
+      if (!modelLoaded && simulatedPercent >= 100) {
+        simulatedPercent = 99;
+      }
+      // Update progress bar
+      document.getElementById('progressBar').style.width = simulatedPercent + '%';
+      document.getElementById('progressText').innerText = Math.round(simulatedPercent) + '%';
+      // Jika progress sudah lebih dari 50%, ubah warna teks menjadi hitam agar kontras
+      if (simulatedPercent >= 50) {
+        document.getElementById('progressText').style.color = 'black';
+      } else {
+        document.getElementById('progressText').style.color = 'white';
+      }
+    }, 100);
 
     new THREE.GLTFLoader().load(
       modelPath,
@@ -214,28 +215,28 @@
 
         fadeIn = true;
         fadeStartTime = performance.now();
+        modelLoaded = true;
 
-        // Hapus simulasi progress jika berjalan
-        if (simulationStarted) {
-          clearInterval(progressInterval);
-          simulationStarted = false;
-        }
-        // Pastikan progress bar mencapai 100%
+        // Hentikan simulasi dan pastikan progress 100%
+        clearInterval(progressInterval);
         document.getElementById('progressBar').style.width = '100%';
         document.getElementById('progressText').innerText = '100%';
+        document.getElementById('progressText').style.color = 'black';
         document.getElementById('progressContainer').style.display = 'none';
         document.getElementById('startButton').style.display = 'block';
       },
       (xhr) => {
-        // Jika header Content-Length tersedia, gunakan data progress yang sesungguhnya
+        // Jika header Content-Length tersedia, gunakan progress aslinya
         if (xhr.lengthComputable) {
-          if (simulationStarted) {
-            clearInterval(progressInterval);
-            simulationStarted = false;
-          }
-          const percent = (xhr.loaded / xhr.total) * 100;
+          clearInterval(progressInterval);
+          let percent = (xhr.loaded / xhr.total) * 100;
           document.getElementById('progressBar').style.width = percent + '%';
           document.getElementById('progressText').innerText = Math.round(percent) + '%';
+          if (percent >= 50) {
+            document.getElementById('progressText').style.color = 'black';
+          } else {
+            document.getElementById('progressText').style.color = 'white';
+          }
         }
       },
       (error) => {
