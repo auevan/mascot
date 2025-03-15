@@ -19,19 +19,16 @@
       z-index: 1000;
       transition: all 1s ease-out;
     }
-
     #overlay.hidden {
       opacity: 0;
       pointer-events: none;
     }
-
     .content {
       display: flex;
       justify-content: center;
       align-items: center;
       flex-direction: column;
     }
-
     .title, .dev {
       color: white;
       font-family: 'Arial', sans-serif;
@@ -40,17 +37,14 @@
       opacity: 0;
       animation: fadeInUp 1s ease-out forwards;
     }
-
     .title {
       font-size: clamp(1.8em, 5vw, 3em);
       margin-bottom: 0;
       letter-spacing: clamp(2px, 4vw, 4px);
     }
-
     .dev {
       margin: 1em 0 1.5em 0;
     }
-
     #startButton {
       padding: 15px 40px;
       font-size: 1.2em;
@@ -63,13 +57,11 @@
       animation: fadeInUp 1s ease-out 0.5s forwards;
       display: none;
     }
-
     #startButton:hover {
       background: white;
       color: black;
       transform: scale(1.1);
     }
-
     /* Progress bar styles */
     #progressContainer {
       width: 80%;
@@ -98,12 +90,10 @@
       color: white;
       font-size: 0.9em;
     }
-
     @keyframes fadeInUp {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
     body { 
       margin: 0;
       overflow: hidden;
@@ -113,7 +103,6 @@
       width: 100%;
       height: 100%;
     }
-
     @media (max-width: 600px) {
       #startButton {
         padding: 10px 20px;
@@ -178,8 +167,32 @@
     controls.enableDamping = true;
     controls.autoRotate = false;
 
+    const modelPath = 'assets/model/maskot.glb';
+    let simulationStarted = false;
+    let progressInterval;
+
+    // Fungsi untuk mensimulasikan progress jika header Content-Length tidak tersedia
+    function startSimulation() {
+      simulationStarted = true;
+      progressInterval = setInterval(() => {
+        let progressBar = document.getElementById('progressBar');
+        let progressText = document.getElementById('progressText');
+        // Ambil nilai progress saat ini
+        let current = parseFloat(progressBar.style.width);
+        current = isNaN(current) ? 0 : current;
+        // Tambahkan secara acak hingga maksimum 90%
+        let increment = Math.random() * 5; // increment antara 0 dan 5%
+        current = Math.min(current + increment, 90);
+        progressBar.style.width = current + '%';
+        progressText.innerText = Math.round(current) + '%';
+      }, 100);
+    }
+
+    // Mulai simulasi progress
+    startSimulation();
+
     new THREE.GLTFLoader().load(
-      'assets/model/maskot.glb',
+      modelPath,
       (gltf) => {
         model = gltf.scene;
         model.rotation.y = Math.PI;
@@ -202,18 +215,31 @@
         fadeIn = true;
         fadeStartTime = performance.now();
 
+        // Hapus simulasi progress jika berjalan
+        if (simulationStarted) {
+          clearInterval(progressInterval);
+          simulationStarted = false;
+        }
+        // Pastikan progress bar mencapai 100%
+        document.getElementById('progressBar').style.width = '100%';
+        document.getElementById('progressText').innerText = '100%';
         document.getElementById('progressContainer').style.display = 'none';
         document.getElementById('startButton').style.display = 'block';
       },
       (xhr) => {
+        // Jika header Content-Length tersedia, gunakan data progress yang sesungguhnya
         if (xhr.lengthComputable) {
+          if (simulationStarted) {
+            clearInterval(progressInterval);
+            simulationStarted = false;
+          }
           const percent = (xhr.loaded / xhr.total) * 100;
           document.getElementById('progressBar').style.width = percent + '%';
           document.getElementById('progressText').innerText = Math.round(percent) + '%';
         }
       },
       (error) => {
-        console.error(error);
+        console.error('Terjadi kesalahan saat memuat model:', error);
       }
     );
 
@@ -243,7 +269,9 @@
         if (factor === 1) fadeIn = false;
       }
 
-      if (isRotating) model.rotation.y += 0.01;
+      if (isRotating && model) {
+        model.rotation.y += 0.01;
+      }
 
       renderer.render(scene, camera);
     }
