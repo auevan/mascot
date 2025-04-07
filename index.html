@@ -1,0 +1,120 @@
+<head>
+    <meta charset="UTF-8">
+    <title>Maskot Gallery</title>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="assets/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script type="text/javascript" src="https://code.jquery.com/jquery.min.js"></script>
+    <script src="https://netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+    <style>
+        /* Pastikan gambar menyesuaikan lebar dan tinggi secara responsif */
+        .carousel-inner > .item > img {
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+        }
+
+        /* Pastikan caption tetap terbaca di perangkat kecil */
+        .carousel-caption {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        /* Pastikan carousel bisa menyesuaikan dengan ukuran layar */
+        .carousel {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        /* Menyesuaikan ukuran SweetAlert */
+        .swal2-popup {
+            font-size: 18px !important;
+        }
+    </style>
+</head>
+<body>
+    <script type="text/javascript">
+        Swal.fire({
+            title: "Petunjuk",
+            text: "Scroll ke bawah dan klik karakter untuk melihatnya secara 3D!",
+            icon: "info",
+            customClass: {
+                popup: 'large-popup'
+            }
+        });
+    </script>
+
+    <div class="bs-example">
+        <div id="myCarousel" class="carousel slide" data-interval="6500" data-ride="carousel">
+            <!-- Carousel indicators -->
+            <ol class="carousel-indicators">
+                <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+                <li data-target="#myCarousel" data-slide-to="1"></li>
+            </ol>   
+            <!-- Carousel items -->
+            <div class="carousel-inner">
+                <div class="active item">
+                    <img src="assets/Raden_Carousel.png" alt="Slide 1" class="img-responsive">
+                    <!-- <div class="carousel-caption">
+                      <h3>Raden Si Radja Cendekia</h3>
+                    </div> -->
+                </div>
+                <div class="item">
+                    <img src="assets/Rio_Carousel.png" alt="Slide 2" class="img-responsive">
+                    <!-- <div class="carousel-caption">
+                      <h3>Rio Si Macan Cendekia</h3>
+                    </div> -->
+                </div>
+            </div>
+            <!-- Carousel nav -->
+            <a class="carousel-control left" href="#myCarousel" data-slide="prev">
+                <span class="glyphicon glyphicon-chevron-left"></span>
+            </a>
+            <a class="carousel-control right" href="#myCarousel" data-slide="next">
+                <span class="glyphicon glyphicon-chevron-right"></span>
+            </a>
+        </div>
+    </div>
+
+    <div class="cards-list" title="Klik Untuk Melihatnya Secara 3D">
+        <div class="card 1" onclick="maskot('raden')">
+            <div class="card_image"> <img src="assets/Radens.png" /> </div>
+            <div class="card_title title-white">
+                <p>Raden Si Radja Cendekia</p>
+            </div>
+        </div>
+
+        <div class="card 2" onclick="maskot('rio')">
+            <div class="card_image">
+                <img src="assets/Rios.png" />
+            </div>
+            <div class="card_title title-white">
+                <p>Rio Si Macan Cendekia</p>
+            </div>
+        </div>
+    </div>
+
+    <footer style="background-color: #003A91; color: white; padding: 20px 0; text-align: center; font-size: 2em; margin-top: 50px;">
+        <br>
+    <p>&copy; 2025 Maskot Gallery. All rights reserved.</p>
+    <p>Designed with ♥ by Auevan</p>
+    <br>
+</footer>
+
+</body>
+
+<script type="text/javascript">
+    function maskot(nama) {
+        url = "https://auevan.github.io/"+nama
+        window.open(url, "_blank");
+    }
+</script>
+</html>
